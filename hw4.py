@@ -1,12 +1,13 @@
-from logging import raiseExceptions
-
-import county_demographics
 import build_data
 import sys
 import data
 
 full_data = build_data.get_data()
-
+operations = ["DEFAULT","population-total", "population:", "percent:", "display", "gt:", "lt:", "state"]
+keys = ["DEFAULT","Bachelor's Degree or Higher", "High School or Higher", "American Indian and Alaska Native Alone",
+        "Asian Alone", "Black Alone", "Hispanic or Latino", "Native Hawaiian and Other Pacific Islander Alone",
+        "Two or More Races", "White Alone", "White Alone, not Hispanic or Latino", "Persons Below Poverty Level"]
+filters = ["state:","lt:","gt:"]
 
 # PART 1
 # Returns the total 2014 Population from the given countries in the provided list
@@ -102,48 +103,93 @@ def below_poverty_level_less_than(counties : list[data.CountyDemographics], thre
     return [county for county in counties if county.income['Persons Below Poverty Level'] < threshold]
 
 
-def run_operations(stats : list[data.CountyDemographics], line : str,operation: str,measure : str, key : str) -> None:
-    try:
-        if operation == "population-total":
-            print("2014 Population:", population_list(stats))
-        elif operation == 'population:':
-            # print("pop yuhh")
+def run_operations(stats : list[data.CountyDemographics], line : str) -> None:
+    value = 0.0
+    operation = "DEFAULT"
+    key = "DEFAULT"
+    measure = "DEFAULT"
+
+    if ":" not in line:
+        operation = line.strip()
+    elif "-" not in line:
+        operation = line[:line.find(":") + 1]
+        measure = line[line.find(":") + 1:line.find(".")]
+        key = line[line.find(".") + 1:].strip()
+
+    if operation not in operations or key not in keys:
+        raise ValueError("Error: Invalid input.")
+    if operation == "population-total":
+        print("2014 Population:", population_list(stats))
+    elif operation == 'population:':
+        # print("pop yuhh")
+        if "Ethnicities" in line:
+            value = population_by_ethnicity(stats, key)
+        elif "Education" in line:
+            value = population_by_education(stats, key)
+        elif key == "Persons Below Poverty Level":
+            value = population_below_poverty_level(stats)
+        print("2014", measure, key, ": ", value)
+    elif operation == 'percent:':
+        # print("percent yuhh")
+        if "Ethnicities" in line:
+            value = percent_by_ethnicity(stats, key)
+        elif "Education" in line:
+            value = percent_by_education(stats, key)
+        elif key == "Persons Below Poverty Level":
+            value = percent_below_poverty_level(stats)
+        print("2014", measure, key, ": ", value, "%")
+    elif operation == "display":
+        for county in stats:
+            print("[",county.county,"]")
+            print("\tPOPULATION:",county.population['2014 Population'])
+            print ("\tAGE")
+            for age in county.age:
+                print("\t\t",age,":",county.age[age],"%")
+            print("\tEDUCATION")
+            for edu in county.education:
+                print("\t\t", edu, ":", county.education[edu], "%")
+            print("\tETHNICITIES")
+            for eth in county.ethnicities:
+                print("\t\t", eth,":", county.ethnicities[eth],"%")
+            print("\tINCOME")
+            for income in county.income:
+                if income == 'Persons Below Poverty Level':
+                    print("\t\t", income, ":", county.income[income],"%")
+                else: print("\t\t", income, ":", county.income[income])
+
+
+def filter_data(stats : list[data.CountyDemographics], line : str) -> list[data.CountyDemographics]:
+    first_colon_index = line.find(":") + 1
+    filter = line[line.find("-") + 1:first_colon_index]
+    new_stats = 0
+    if filter not in filters:
+        raise ValueError("Error: Invalid input.")
+
+    if filter == "state:":
+            state = line[line.find(":") + 1:].strip()
+            new_stats = filter_by_state(stats, state)
+            print("[FILTER] State -> {} (Entries: {})".format(state, len(new_stats)))
+    else:
+        threshold = float(line[line.find(":", first_colon_index) + 1:].strip())
+        measure = line[line.find(":") + 1:line.find(".")]
+        key = line[line.find(".") + 1:line.find(":", first_colon_index)].strip()
+        if filter == "gt:":
             if "Ethnicities" in line:
-                print("2014", measure, key, ": ", population_by_ethnicity(stats, key))
+                new_stats = ethnicity_greater_than(stats, key, threshold)
             elif "Education" in line:
-                print("2014", measure, key, ": ", population_by_education(stats, key))
+                new_stats = education_greater_than(stats, key, threshold)
             elif key == "Persons Below Poverty Level":
-                print("2014", measure, key, ": ", population_below_poverty_level(stats))
-        elif operation == 'percent:':
-            # print("percent yuhh")
+                new_stats = below_poverty_level_greater_than(stats, threshold)
+            print("[FILTER] {} -> {}, {} {} ({} entries)".format(measure, key, criteria, threshold, len(new_stats)))
+        elif filter == "lt:":
             if "Ethnicities" in line:
-                print("2014", measure, key, ": ", percent_by_ethnicity(stats, key))
+                new_stats = ethnicity_less_than(stats, key, threshold)
             elif "Education" in line:
-                print("2014", measure, key, ": ", percent_by_education(stats, key))
+                new_stats = education_less_than(stats, key, threshold)
             elif key == "Persons Below Poverty Level":
-                print("2014", measure, key, ": ", percent_below_poverty_level(stats))
-        """
-        elif operation == "display":
-            for county in stats:
-                print("[",county.county,"]")
-                print("\tPOPULATION:",county.population['2014 Population'])
-                print ("\tAGE")
-                for age in county.age:
-                    print("\t\t",age,":",county.age[age],"%")
-                print("\tEDUCATION")
-                for edu in county.education:
-                    print("\t\t", edu, ":", county.education[edu], "%")
-                print("\tETHNICITIES")
-                for eth in county.ethnicities:
-                    print("\t\t", eth,":", county.ethnicities[eth],"%")
-                print("\tINCOME")
-                for income in county.income:
-                    if income == 'Persons Below Poverty Level':
-                        print("\t\t", income, ":", county.income[income],"%")
-                    else: print("\t\t", income, ":", county.income[income])
-        """
-    except:
-        print("Error occurred: Invalid Operation. (@ line {})".format(count))
+                new_stats = below_poverty_level_less_than(stats, threshold)
+        print("[FILTER] {} -> {}, {} {} ({} entries)".format(measure, key, criteria, threshold, len(new_stats)))
+    return new_stats
 
 def main():
     file = "inputs/"+sys.argv[1]
@@ -151,19 +197,12 @@ def main():
     #file_contents = infile.read()
     print(file)
 
+
     with open(file, 'r') as infile:
 
         print(len(full_data), "records loaded.")
 
-        operations = ["population-total", "population:", "percent:", "display", "gt:", "lt:", "filter-state"]
-        first_line = infile.readline()
         stats = full_data
-
-        if "filter-state" in first_line:
-            state = first_line[first_line.find(":") + 1:].strip()
-            print(state)
-            stats = filter_by_state(full_data, state)
-            print("[FILTER] State -> {} (Entries: {})".format(state, len(stats)))
 
         infile.seek(0)
         count = 0
@@ -171,43 +210,11 @@ def main():
             count +=1
             try:
                 if "filter" in line:
-                    if "filter-state" in first_line:
-                        stats = filter_by_state(full_data,state)
-                    else:
-                        stats = full_data
-                        first_colon_index = line.find(":") + 1
-                        criteria = line[line.find("-") + 1:first_colon_index]
-                        threshold = float(line[line.find(":", first_colon_index) + 1:].strip())
-                        measure = line[line.find(":") + 1:line.find(".")]
-                        key = line[line.find(".") + 1:line.find(":", first_colon_index)].strip()
-
-                        if criteria == "gt:":
-                            if "Ethnicities" in line:
-                                stats = ethnicity_greater_than(stats, key, threshold)
-                            elif "Education" in line:
-                                stats = education_greater_than(stats, key, threshold)
-                            elif key == "Persons Below Poverty Level":
-                                stats = below_poverty_level_greater_than(stats, threshold)
-                        elif criteria == "lt:":
-                            if "Ethnicities" in line:
-                                stats = ethnicity_less_than(stats, key, threshold)
-                            elif "Education" in line:
-                                stats = education_less_than(stats, key, threshold)
-                            elif key == "Persons Below Poverty Level":
-                                stats = below_poverty_level_less_than(stats, threshold)
-                        print("[FILTER] {} -> {}, {} {} ({} entries)".format(measure, key, criteria, threshold, len(stats)))
-
-                if ":" not in line:
-                    operation = line.strip()
-                elif "-" not in line:
-                    operation = line[:line.find(":")+1]
-                    measure = line[line.find(":")+1:line.find(".")]
-                    key = line[line.find(".")+1:].strip()
-
-                run_operations(stats, line, operation, measure, key)
-                #print("measure: ", measure)
+                    stats = filter_data(stats,line)
+                else:
+                    run_operations(stats, line)
             except:
-                print("An Error occurred. (@ line {})".format(count))
+                print("An Error occurred. (@ line {}: {})".format(count,line.strip()))
 
 if __name__ == '__main__':
     try:
