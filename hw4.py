@@ -102,7 +102,10 @@ def below_poverty_level_greater_than(counties : list[data.CountyDemographics], t
 def below_poverty_level_less_than(counties : list[data.CountyDemographics], threshold : float) -> list[data.CountyDemographics]:
     return [county for county in counties if county.income['Persons Below Poverty Level'] < threshold]
 
-
+# This function commits a specified data analysis operation through a given list of counties given a prompt from line,
+# printing the analyzed data
+# INPUT: str representing line of instructions, list of counties
+# OUTPUT: None
 def run_operations(stats : list[data.CountyDemographics], line : str) -> None:
     value = 0.0
     operation = "DEFAULT"
@@ -157,7 +160,9 @@ def run_operations(stats : list[data.CountyDemographics], line : str) -> None:
                     print("\t\t", income, ":", county.income[income],"%")
                 else: print("\t\t", income, ":", county.income[income])
 
-
+# This function filters through a given list of counties given a prompt from line
+# INPUT: str representing line of instructions, list of counties being filtered
+# OUTPUT: filtered list of counties
 def filter_data(stats : list[data.CountyDemographics], line : str) -> list[data.CountyDemographics]:
     first_colon_index = line.find(":") + 1
     filter = line[line.find("-") + 1:first_colon_index]
@@ -192,18 +197,13 @@ def filter_data(stats : list[data.CountyDemographics], line : str) -> list[data.
 
 def main():
     file = "inputs/"+sys.argv[1]
-    #infile = open(file, 'r')
-    #file_contents = infile.read()
     print(file)
-
 
     with open(file, 'r') as infile:
 
         print(len(full_data), "records loaded.")
 
         stats = full_data
-
-        infile.seek(0)
         count = 0
         for line in infile:
             count +=1
@@ -216,6 +216,7 @@ def main():
                 print("An Error occurred. (@ line {}: {})".format(count,line.strip()))
 
 if __name__ == '__main__':
+
     try:
         main()
     except:
