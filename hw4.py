@@ -180,7 +180,6 @@ def filter_data(stats : list[data.CountyDemographics], line : str) -> list[data.
                 new_stats = education_greater_than(stats, key, threshold)
             elif key == "Persons Below Poverty Level":
                 new_stats = below_poverty_level_greater_than(stats, threshold)
-            print("[FILTER] {} -> {}, {} {} ({} entries)".format(measure, key, criteria, threshold, len(new_stats)))
         elif filter == "lt:":
             if "Ethnicities" in line:
                 new_stats = ethnicity_less_than(stats, key, threshold)
@@ -188,7 +187,7 @@ def filter_data(stats : list[data.CountyDemographics], line : str) -> list[data.
                 new_stats = education_less_than(stats, key, threshold)
             elif key == "Persons Below Poverty Level":
                 new_stats = below_poverty_level_less_than(stats, threshold)
-        print("[FILTER] {} -> {}, {} {} ({} entries)".format(measure, key, criteria, threshold, len(new_stats)))
+        print("[FILTER] {} -> {}, {} {} ({} entries)".format(measure, key, filter, threshold, len(new_stats)))
     return new_stats
 
 def main():
